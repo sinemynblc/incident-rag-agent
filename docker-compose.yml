@@ -1,0 +1,30 @@
+services:
+  # 1) Qdrant vektör veritabanı
+  qdrant:
+    image: qdrant/qdrant           # hazır Qdrant imajı (Docker Hub'dan)
+    ports:
+      - "6333:6333"                # host:konteyner — tarayıcıdan localhost:6333 erişilebilir
+    volumes:
+      - qdrant_storage:/qdrant/storage   # veriyi kalıcı tut (konteyner silinse de kaybolmasın)
+
+  # 2) Senin uygulaman (FastAPI + RAG)
+  app:
+    build: .                       # bu klasördeki Dockerfile'dan imaj oluştur
+    ports:
+      - "8000:8000"                # host:konteyner — tarayıcıdan localhost:8000
+    depends_on:
+      - qdrant                     # önce qdrant başlasın, sonra app
+    environment:
+      # DİKKAT: localhost DEĞİL — compose ağında Qdrant'a servis adıyla ulaşılır
+      QDRANT_URL: "http://qdrant:6333"
+      # API anahtarları .env dosyasından okunur (aşağıya bak)
+      GROQ_API_KEY: "${GROQ_API_KEY}"
+      MEM0_API_KEY: "${MEM0_API_KEY}"
+      # Model Dockerfile build sırasında imaja gömüldüğü için, her başlangıçta
+      # Hugging Face Hub'a bağlanıp kontrol etmesin diye offline moda alıyoruz.
+      # Bu, HF Hub uyarısını ve ilgili gecikmeyi ortadan kaldırır.
+      HF_HUB_OFFLINE: "1"
+
+# Qdrant verisinin kalıcı saklandığı isimli volume
+volumes:
+  qdrant_storage: 
